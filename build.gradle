@@ -4,4 +4,74 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.android.library) apply false
+    id 'com.github.jk1.dependency-license-report' version '3.0.1'
+}
+
+import com.github.jk1.license.render.*
+import groovy.json.JsonSlurper
+
+
+// 1. 配置插件，确保只生成我们需要的 JSON 数据
+licenseReport {
+    projects = [project] + project.subprojects
+    configurations = ['releaseRuntimeClasspath']
+    renderers = [new JsonReportRenderer('report.json')]
+}
+
+// 2. 自定义 Task：读取 JSON 并转换为你的 Markdown 格式
+tasks.register('generateMyCustomLicenseMd') {
+    // 依赖插件的任务，确保数据已生成
+    dependsOn 'generateLicenseReport'
+
+    // 定义输入和输出文件
+    def reportFile = file("${project.buildDir}/reports/dependency-license/report.json")
+    def outputFile = file("${project.buildDir}/reports/dependency-license/OPEN_SOURCE_LICENSES.md")
+
+    inputs.file(reportFile)
+    outputs.file(outputFile)
+
+    doLast {
+        if (!reportFile.exists()) {
+            println "Error: Report file not found at ${reportFile}"
+            return
+        }
+
+        // 解析 JSON
+        def jsonSlurper = new JsonSlurper()
+        def json = jsonSlurper.parse(reportFile)
+
+        // 准备写入文件
+        outputFile.parentFile.mkdirs()
+        def writer = outputFile.newWriter("UTF-8")
+
+        // json.dependencies 是一个列表
+        json.dependencies.each { dep ->
+            // 1. 获取 Name (通常用 moduleName 或者 artifactId)
+            // 格式通常是 group:name:version，我们可以只取中间的 name，或者显示完整的
+            // 这里我们尝试提取简单的 name，如果不行就用完整的
+            def fullName = dep.moduleName // e.g., com.squareup.okhttp3:okhttp:4.9.0
+            def name = fullName.split(':').length >= 2 ? fullName.split(':')[1] : fullName
+
+            // 2. 获取 URL
+            def url = dep.moduleUrl ?: ""
+
+            // 3. 获取 License 名称
+            def licenses = dep.moduleLicense  ?: ""
+
+
+            // --- 写入你的格式 ---
+            // ### [Name](Url)
+            // License Name
+
+            writer.writeLine("### [${name}](${url})")
+            writer.writeLine("${licenses}")
+            writer.writeLine("") // 空行
+        }
+
+        writer.close()
+        println "------------------------------------------------"
+        println "自定义 Markdown 报告已生成："
+        println "${outputFile.absolutePath}"
+        println "------------------------------------------------"
+    }
 }
