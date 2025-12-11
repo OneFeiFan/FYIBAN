@@ -7,7 +7,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
-import java.util.*
+import java.util.Base64
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import javax.crypto.Cipher
@@ -16,13 +16,15 @@ import javax.crypto.Cipher
 class SchoolBasedAuth(private val req: BaseReq) {
     @Throws(Exception::class)
     fun auth(mobile: String, password: String) {
-        val html = req.get(
+        val htmlResponse = req.get(
             url = "https://oauth.yiban.cn/code/html",
             params = mapOf(
                 "client_id" to "95626fa3080300ea",
                 "redirect_uri" to "https://f.yiban.cn/iapp7463"
             )
-        ).body!!.string()
+        )
+        val html = htmlResponse.body!!.string()
+        htmlResponse.close()
         val doc: Document = Jsoup.parse(html)
         // 提取key
         val keyElement: Element? = doc.selectFirst("input#key")
@@ -38,7 +40,7 @@ class SchoolBasedAuth(private val req: BaseReq) {
         val pageUse: String = if (matcher.find()) matcher.group(1) else ""
         val encrypted = encryptWithRsa(password, key)
 
-        val loginData = req.post(
+        val loginResponse = req.post(
             url = "https://oauth.yiban.cn/code/usersure",
             params = mapOf("ajax_sign" to pageUse),
             data = mapOf(
@@ -50,7 +52,10 @@ class SchoolBasedAuth(private val req: BaseReq) {
                 "scope" to "",
                 "display" to "authorize"
             )
-        ).parseJson()
+        )
+
+        val loginData = loginResponse.parseJson()
+        loginResponse.close()
 
         if (loginData["code"] != "s200") {
             throw Exception("登录失败: ${loginData["msgCN"]}")
@@ -59,10 +64,11 @@ class SchoolBasedAuth(private val req: BaseReq) {
             url = "https://f.yiban.cn/iframe/index",
             params = mapOf("act" to "iapp7463")
         )
-
         val location = redirectResponse.headers["Location"]
-            ?: throw Exception("缺少重定向Location头")
-
+        redirectResponse.close()
+        if (location == null) {
+            throw Exception("缺少重定向Location头")
+        }
         val verifyRequest = Regex("verify_request=(.*?)&")
             .find(location)?.groupValues?.get(1)
             ?: throw Exception("无法提取verify_request")
@@ -73,10 +79,11 @@ class SchoolBasedAuth(private val req: BaseReq) {
                 "verifyRequest" to verifyRequest,
                 "CSRF" to SchoolBased.csrf()
             ),
-        ).parseJson()
-
-        if (authResponse["code"] != 0) {
-            throw Exception("最终认证失败: ${authResponse["msg"]}")
+        )
+        val authResult = authResponse.parseJson()
+        authResponse.close()
+        if (authResult["code"] != 0) {
+            throw Exception("最终认证失败: ${authResult["msg"]}")
         }
     }
 
@@ -95,14 +102,9 @@ class SchoolBasedAuth(private val req: BaseReq) {
             Base64.getEncoder().encodeToString(doFinal(data.toByteArray(Charsets.UTF_8)))
         }
     }
-
-//    private fun Response<String?>.parseJson(): Map<String, Any> {
-//        val responseBody = body
-//        return JSONObject.parseObject(responseBody)
-//    }
 }
 
 private fun Response.parseJson(): JSONObject {
-            val responseBody = body!!.string()
-        return JSONObject.parseObject(responseBody)
+    val responseBody = body!!.string()
+    return JSONObject.parseObject(responseBody)
 }

@@ -3,9 +3,6 @@ package com.feifan.yiban.Core
 import com.alibaba.fastjson.JSONObject
 import com.feifan.yiban.tool.generateRandomPointsInCenter
 import okhttp3.Response
-import kotlin.text.set
-
-//import kong.unirest.HttpResponse
 
 class TaskFeedback(private val req: BaseReq) {
 
@@ -78,6 +75,7 @@ class TaskFeedback(private val req: BaseReq) {
     // 解析签到响应
     private fun parseSignResponse(response: Response): String {
         val body = response.body!!.string()
+        response.close()
         val json = JSONObject.parseObject(body)
         return if (json.getIntValue("code") == 0 && json.getBoolean("data")) {
             "签到成功"
@@ -85,6 +83,4 @@ class TaskFeedback(private val req: BaseReq) {
             json.getString("msg")
         }
     }
-
-
 }

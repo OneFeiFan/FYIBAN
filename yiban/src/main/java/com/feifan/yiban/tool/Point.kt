@@ -59,7 +59,11 @@ fun normalRandom(scale: Double = 1.0): Double {
 }
 
 // 生成收缩后的多边形
-fun createScaledPolygon(originalPoints: List<Point>, centroid: Point, scaleFactor: Double = 0.7): List<Point> {
+fun createScaledPolygon(
+    originalPoints: List<Point>,
+    centroid: Point,
+    scaleFactor: Double = 0.7
+): List<Point> {
     return originalPoints.map { p ->
         val dx = p.lng - centroid.lng
         val dy = p.lat - centroid.lat

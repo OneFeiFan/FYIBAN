@@ -5,13 +5,19 @@ import com.feifan.yiban.Core.SchoolBased.csrf
 import com.franmontiel.persistentcookiejar.PersistentCookieJar
 import com.franmontiel.persistentcookiejar.cache.SetCookieCache
 import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
-import okhttp3.*
+import okhttp3.Cookie
+import okhttp3.FormBody
+import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import java.util.concurrent.TimeUnit
 
 
 class BaseReq(context: Context) {
-    private val baseHeaders: HashMap<String, String> = SchoolBased.headers() as HashMap<String, String>
+    private val baseHeaders: HashMap<String, String> =
+        SchoolBased.headers() as HashMap<String, String>
     private val client: OkHttpClient
 
     init {
@@ -68,6 +74,7 @@ class BaseReq(context: Context) {
                 }.build()
                 requestBuilder.post(formBody)
             }
+
             else -> {
                 requestBuilder.get()
             }
