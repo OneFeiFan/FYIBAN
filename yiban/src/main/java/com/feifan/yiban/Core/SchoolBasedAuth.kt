@@ -24,7 +24,11 @@ class SchoolBasedAuth(private val req: BaseReq) {
             )
         )
         val html = htmlResponse.body!!.string()
+        val htmlLocation = htmlResponse.headers["Location"]
         htmlResponse.close()
+        if (htmlLocation != null&&htmlLocation.contains("iapp7463")) {
+            return
+        }
         val doc: Document = Jsoup.parse(html)
         // 提取key
         val keyElement: Element? = doc.selectFirst("input#key")
@@ -102,6 +106,7 @@ class SchoolBasedAuth(private val req: BaseReq) {
             Base64.getEncoder().encodeToString(doFinal(data.toByteArray(Charsets.UTF_8)))
         }
     }
+
 }
 
 private fun Response.parseJson(): JSONObject {

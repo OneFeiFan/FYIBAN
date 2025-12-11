@@ -25,14 +25,9 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 val yb = Task(this@MainActivity)
-
-
                 yb.init("15298378210", "lwf19552006623")
                 yb.submitSignFeedback()
             }
-
-
-
             println(result)
             Toast.makeText(this@MainActivity, result, Toast.LENGTH_SHORT).show()
 
