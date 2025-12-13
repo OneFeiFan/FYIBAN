@@ -34,6 +34,7 @@ class BaseReq(context: Context) {
             .connectTimeout(10, TimeUnit.SECONDS)
             .cookieJar(cookieJar)
             .followRedirects(false)
+            .retryOnConnectionFailure(true)
             .build()
 
         // 添加默认cookie
